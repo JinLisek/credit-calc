@@ -6,15 +6,21 @@ on:
       - main
 
 jobs:
-  deploy-to-gh-pages:
+  build:
     runs-on: ubuntu-latest
     container:
       image: node:22-bookworm
     steps:
       - uses: actions/checkout@v2
+
       - name: Install dependencies
         run: npm install
+
       - name: Build
         run: npm run build
-      - name: Deploy
-        run: npm run deploy
+
+      - name: Upload production-ready build files
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-files
+          path: ./dist
