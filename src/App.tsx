@@ -1,35 +1,59 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+
 import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [rawLoanAmount, setRawLoanAmount] = useState("");
+  const [rawInterestRate, setRawInterestRate] = useState("");
+  const [loanAmountError, setLoanAmountError] = useState("");
+  const [interestRateError, setInterestRateError] = useState("");
+
+  const onChangeLoanAmount = (value: string) => {
+    let amount = parseFloat(value);
+
+    if (isNaN(amount)) {
+      setLoanAmountError("Kwota kredytu musi być liczbą");
+    } else if (amount < 0) {
+      setLoanAmountError("Kwota kredytu musi być większa od zera");
+    } else {
+      setLoanAmountError("");
+    }
+    setRawLoanAmount(value);
+  };
+
+  const onChangeInterestRate = (value: string) => {
+    let rate = parseFloat(value);
+
+    console.log(rate);
+    if (isNaN(rate)) {
+      setInterestRateError("Oprocentowanie musi być liczbą");
+    } else if (rate < 0) {
+      setInterestRateError("Oprocentowanie musi być większa od zera");
+    } else {
+      setInterestRateError("");
+    }
+    setRawInterestRate(value);
+  };
 
   return (
-    <>
-      <div>
-        <div></div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <label>
+        Kwota kredytu
+        <input
+          value={rawLoanAmount}
+          onChange={(e) => onChangeLoanAmount(e.target.value)}
+        ></input>
+        {loanAmountError && <div>{loanAmountError}</div>}
+      </label>
+      <label>
+        Oprocentowanie{" "}
+        <input
+          value={rawInterestRate}
+          onChange={(e) => onChangeInterestRate(e.target.value)}
+        ></input>
+        {interestRateError && <div>{interestRateError}</div>}
+      </label>
+    </div>
   );
 }
 
