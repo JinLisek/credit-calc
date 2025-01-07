@@ -5,11 +5,15 @@ import "./App.css";
 function App() {
   const [rawLoanAmount, setRawLoanAmount] = useState("");
   const [rawInterestRate, setRawInterestRate] = useState("");
+  const [rawNumberOfInstallments, setRawNumberOfInstallments] = useState("");
+
   const [loanAmountError, setLoanAmountError] = useState("");
   const [interestRateError, setInterestRateError] = useState("");
+  const [numberOfInstallmentsError, setNumberOfInstallmentsError] =
+    useState("");
 
   const onChangeLoanAmount = (value: string) => {
-    let amount = parseFloat(value);
+    let amount = Number(value);
 
     if (isNaN(amount)) {
       setLoanAmountError("Kwota kredytu musi być liczbą");
@@ -18,13 +22,13 @@ function App() {
     } else {
       setLoanAmountError("");
     }
+
     setRawLoanAmount(value);
   };
 
   const onChangeInterestRate = (value: string) => {
-    let rate = parseFloat(value);
+    let rate = Number(value);
 
-    console.log(rate);
     if (isNaN(rate)) {
       setInterestRateError("Oprocentowanie musi być liczbą");
     } else if (rate < 0) {
@@ -32,7 +36,28 @@ function App() {
     } else {
       setInterestRateError("");
     }
+
     setRawInterestRate(value);
+  };
+
+  const onChangeNumberOfInstallments = (value: string) => {
+    let installments = Number(value);
+
+    if (
+      isNaN(installments) ||
+      !Number.isInteger(installments) ||
+      value.includes(".")
+    ) {
+      setNumberOfInstallmentsError(
+        "Początkowa ilość rat musi być liczbą całkowitą"
+      );
+    } else if (installments < 0) {
+      setNumberOfInstallmentsError("Kwota kredytu musi być większa od zera");
+    } else {
+      setNumberOfInstallmentsError("");
+    }
+
+    setRawNumberOfInstallments(value);
   };
 
   return (
@@ -46,12 +71,20 @@ function App() {
         {loanAmountError && <div>{loanAmountError}</div>}
       </label>
       <label>
-        Oprocentowanie{" "}
+        Oprocentowanie
         <input
           value={rawInterestRate}
           onChange={(e) => onChangeInterestRate(e.target.value)}
         ></input>
         {interestRateError && <div>{interestRateError}</div>}
+      </label>
+      <label>
+        Początkowa ilość rat
+        <input
+          value={rawNumberOfInstallments}
+          onChange={(e) => onChangeNumberOfInstallments(e.target.value)}
+        ></input>
+        {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
       </label>
     </div>
   );
