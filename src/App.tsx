@@ -1,6 +1,25 @@
 import { useState } from "react";
 
-import "./App.css";
+import "@/App.css";
+
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+
+export type Installment = {
+  installment: number;
+  amount: number;
+};
+
+export const columns: ColumnDef<Installment>[] = [
+  {
+    accessorKey: "installment",
+    header: "Rata",
+  },
+  {
+    accessorKey: "amount",
+    header: "Wysokość raty",
+  },
+];
 
 function App() {
   const [rawLoanAmount, setRawLoanAmount] = useState("");
@@ -60,33 +79,44 @@ function App() {
     setRawNumberOfInstallments(value);
   };
 
+  const numberOfInstallments = parseInt(rawNumberOfInstallments);
+  const installments = Array.from({ length: numberOfInstallments }, (_, i) => ({
+    installment: i + 1,
+    amount: 100 + i * 25,
+  }));
+
   return (
-    <div>
-      <label>
-        Kwota kredytu
-        <input
-          value={rawLoanAmount}
-          onChange={(e) => onChangeLoanAmount(e.target.value)}
-        ></input>
-        {loanAmountError && <div>{loanAmountError}</div>}
-      </label>
-      <label>
-        Oprocentowanie
-        <input
-          value={rawInterestRate}
-          onChange={(e) => onChangeInterestRate(e.target.value)}
-        ></input>
-        {interestRateError && <div>{interestRateError}</div>}
-      </label>
-      <label>
-        Początkowa ilość rat
-        <input
-          value={rawNumberOfInstallments}
-          onChange={(e) => onChangeNumberOfInstallments(e.target.value)}
-        ></input>
-        {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
-      </label>
-    </div>
+    <>
+      <div>
+        <label>
+          Kwota kredytu
+          <input
+            value={rawLoanAmount}
+            onChange={(e) => onChangeLoanAmount(e.target.value)}
+          ></input>
+          {loanAmountError && <div>{loanAmountError}</div>}
+        </label>
+        <label>
+          Oprocentowanie
+          <input
+            value={rawInterestRate}
+            onChange={(e) => onChangeInterestRate(e.target.value)}
+          ></input>
+          {interestRateError && <div>{interestRateError}</div>}
+        </label>
+        <label>
+          Początkowa ilość rat
+          <input
+            value={rawNumberOfInstallments}
+            onChange={(e) => onChangeNumberOfInstallments(e.target.value)}
+          ></input>
+          {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
+        </label>
+      </div>
+      <div className="container mx-auto py-10">
+        <DataTable columns={columns} data={installments} />
+      </div>
+    </>
   );
 }
 
