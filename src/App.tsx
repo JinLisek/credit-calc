@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import "@/App.css";
 
+import Big from "big.js";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -19,8 +20,57 @@ export const columns: ColumnDef<Installment>[] = [
   {
     accessorKey: "amount",
     header: "Wysokość raty",
+    cell: ({ cell }) => {
+      const originalAmount = cell.getValue<number>();
+      const formatter = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: "PLN",
+      });
+      return <div>{formatter.format(originalAmount)}</div>;
+    },
   },
 ];
+
+interface MonthlyPaymentTableProps {
+  numberOfInstallments: number;
+  loanAmount: number;
+  interestRate: number;
+}
+
+const MonthlyPaymentTable = ({
+  numberOfInstallments,
+  loanAmount,
+  interestRate,
+}: MonthlyPaymentTableProps) => {
+  let content = <div>Wprowadź poprawne dane</div>;
+
+  if (
+    !isNaN(numberOfInstallments) &&
+    !isNaN(loanAmount) &&
+    !isNaN(interestRate)
+  ) {
+    const bigLoanAmount = new Big(loanAmount);
+    const bigInterestRate = new Big(interestRate).div(100);
+
+    const monthlyInterestRate = bigInterestRate.div(12);
+    const totalPayment = bigLoanAmount.times(
+      monthlyInterestRate
+        .times(monthlyInterestRate.add(1).pow(numberOfInstallments))
+        .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
+    );
+
+    const installments = Array.from(
+      { length: numberOfInstallments },
+      (_, i) => ({
+        installment: i + 1,
+        amount: totalPayment.toNumber(),
+      })
+    );
+    content = <DataTable columns={columns} data={installments} />;
+  }
+
+  return <div className="container mx-auto py-10">{content}</div>;
+};
 
 function App() {
   const [rawLoanAmount, setRawLoanAmount] = useState("");
@@ -81,10 +131,8 @@ function App() {
   };
 
   const numberOfInstallments = parseInt(rawNumberOfInstallments);
-  const installments = Array.from({ length: numberOfInstallments }, (_, i) => ({
-    installment: i + 1,
-    amount: 100 + i * 25,
-  }));
+  const loanAmount = parseFloat(rawLoanAmount);
+  const interestRate = parseFloat(rawInterestRate);
 
   return (
     <>
@@ -114,9 +162,11 @@ function App() {
           {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
         </label>
       </div>
-      <div className="container mx-auto py-10">
-        <DataTable columns={columns} data={installments} />
-      </div>
+      <MonthlyPaymentTable
+        numberOfInstallments={numberOfInstallments}
+        loanAmount={loanAmount}
+        interestRate={interestRate}
+      />
     </>
   );
 }

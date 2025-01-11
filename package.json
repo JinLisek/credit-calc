@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-table": "^8.20.6",
+    "big.js": "^6.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.471.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@types/big.js": "^6.2.2",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.17",
     "@types/react-dom": "^18.3.5",
