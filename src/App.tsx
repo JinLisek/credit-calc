@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import "@/App.css";
 
+import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -90,26 +91,26 @@ function App() {
       <div>
         <label>
           Kwota kredytu
-          <input
+          <Input
             value={rawLoanAmount}
             onChange={(e) => onChangeLoanAmount(e.target.value)}
-          ></input>
+          ></Input>
           {loanAmountError && <div>{loanAmountError}</div>}
         </label>
         <label>
           Oprocentowanie
-          <input
+          <Input
             value={rawInterestRate}
             onChange={(e) => onChangeInterestRate(e.target.value)}
-          ></input>
+          ></Input>
           {interestRateError && <div>{interestRateError}</div>}
         </label>
         <label>
           Początkowa ilość rat
-          <input
+          <Input
             value={rawNumberOfInstallments}
             onChange={(e) => onChangeNumberOfInstallments(e.target.value)}
-          ></input>
+          ></Input>
           {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
         </label>
       </div>
