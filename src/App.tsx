@@ -9,26 +9,16 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export type Installment = {
   installment: number;
-  amount: number;
-  principal: number;
+  remainingPrincipal: number;
+  installmentPayment: number;
+  principalPayment: number;
+  interestPayment: number;
 };
 
 export const columns: ColumnDef<Installment>[] = [
   {
     accessorKey: "installment",
     header: "Rata",
-  },
-  {
-    accessorKey: "amount",
-    header: "Wysokość raty",
-    cell: ({ cell }) => {
-      const originalAmount = cell.getValue<number>();
-      const formatter = new Intl.NumberFormat("pl-PL", {
-        style: "currency",
-        currency: "PLN",
-      });
-      return <div>{formatter.format(originalAmount)}</div>;
-    },
   },
   {
     accessorKey: "remainingPrincipal",
@@ -43,7 +33,19 @@ export const columns: ColumnDef<Installment>[] = [
     },
   },
   {
-    accessorKey: "principal",
+    accessorKey: "installmentPayment",
+    header: "Wysokość raty",
+    cell: ({ cell }) => {
+      const originalAmount = cell.getValue<number>();
+      const formatter = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: "PLN",
+      });
+      return <div>{formatter.format(originalAmount)}</div>;
+    },
+  },
+  {
+    accessorKey: "principalPayment",
     header: "Kapitał",
     cell: ({ cell }) => {
       const originalAmount = cell.getValue<number>();
@@ -55,7 +57,7 @@ export const columns: ColumnDef<Installment>[] = [
     },
   },
   {
-    accessorKey: "interest",
+    accessorKey: "interestPayment",
     header: "Odsetki",
     cell: ({ cell }) => {
       const originalAmount = cell.getValue<number>();
@@ -69,24 +71,27 @@ export const columns: ColumnDef<Installment>[] = [
 ];
 
 interface MonthlyPaymentTableProps {
+  className: string;
   numberOfInstallments: number;
   loanAmount: number;
   interestRate: number;
-  className: string;
+  monthlyOverpayment: number;
 }
 
 const MonthlyPaymentTable = ({
+  className,
   numberOfInstallments,
   loanAmount,
   interestRate,
-  className,
+  monthlyOverpayment,
 }: MonthlyPaymentTableProps) => {
   let content = <div>Wprowadź poprawne dane</div>;
 
   if (
     !isNaN(numberOfInstallments) &&
     !isNaN(loanAmount) &&
-    !isNaN(interestRate)
+    !isNaN(interestRate) &&
+    !isNaN(monthlyOverpayment)
   ) {
     const bigLoanAmount = new Big(loanAmount);
     const bigInterestRate = new Big(interestRate).div(100);
@@ -98,28 +103,27 @@ const MonthlyPaymentTable = ({
         .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
     );
 
-    let remainingLoanAmount = bigLoanAmount;
+    let outstandingLoanBalance = bigLoanAmount;
 
     const installments = Array.from(
       { length: numberOfInstallments },
       (_, i) => {
-        const principal = totalPayment
-          .minus(remainingLoanAmount.times(monthlyInterestRate))
-          .toNumber();
+        const principalPayment = totalPayment
+          .minus(outstandingLoanBalance.times(monthlyInterestRate))
+          .plus(monthlyOverpayment);
 
-        const interest = remainingLoanAmount
-          .times(monthlyInterestRate)
-          .toNumber();
+        const interestPayment =
+          outstandingLoanBalance.times(monthlyInterestRate);
 
         const result = {
           installment: i + 1,
-          amount: totalPayment.toNumber(),
-          remainingPrincipal: remainingLoanAmount.toNumber(),
-          principal: principal,
-          interest: interest,
+          remainingPrincipal: outstandingLoanBalance.toNumber(),
+          installmentPayment: principalPayment.plus(interestPayment).toNumber(),
+          principalPayment: principalPayment.toNumber(),
+          interestPayment: interestPayment.toNumber(),
         };
 
-        remainingLoanAmount = remainingLoanAmount.minus(principal);
+        outstandingLoanBalance = outstandingLoanBalance.minus(principalPayment);
 
         return result;
       }
@@ -134,11 +138,13 @@ function App() {
   const [rawLoanAmount, setRawLoanAmount] = useState("");
   const [rawInterestRate, setRawInterestRate] = useState("");
   const [rawNumberOfInstallments, setRawNumberOfInstallments] = useState("");
+  const [rawMonthlyOverpayment, setMonthlyOverpayment] = useState("0");
 
   const [loanAmountError, setLoanAmountError] = useState("");
   const [interestRateError, setInterestRateError] = useState("");
   const [numberOfInstallmentsError, setNumberOfInstallmentsError] =
     useState("");
+  const [monthlyOverpaymentError, setMonthlyOverpaymentError] = useState("");
 
   const onChangeLoanAmount = (value: string) => {
     let amount = Number(value);
@@ -188,9 +194,24 @@ function App() {
     setRawNumberOfInstallments(value);
   };
 
+  const onChangeMonthlyOverpayment = (value: string) => {
+    let overpayment = Number(value);
+
+    if (isNaN(overpayment)) {
+      setMonthlyOverpaymentError("Nadpłata musi być liczbą");
+    } else if (overpayment < 0) {
+      setMonthlyOverpaymentError("Nadpłata musi być większa od zera");
+    } else {
+      setMonthlyOverpaymentError("");
+    }
+
+    setMonthlyOverpayment(value);
+  };
+
   const numberOfInstallments = parseInt(rawNumberOfInstallments);
   const loanAmount = parseFloat(rawLoanAmount);
   const interestRate = parseFloat(rawInterestRate);
+  const monthlyOverpayment = parseFloat(rawMonthlyOverpayment);
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -220,6 +241,14 @@ function App() {
           ></Input>
           {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
         </label>
+        <label>
+          Nadpłata miesięczna
+          <Input
+            value={rawMonthlyOverpayment}
+            onChange={(e) => onChangeMonthlyOverpayment(e.target.value)}
+          ></Input>
+          {monthlyOverpaymentError && <div>{monthlyOverpaymentError}</div>}
+        </label>
       </div>
       <div>
         <p>Dane wyjściowe</p>
@@ -228,6 +257,7 @@ function App() {
         numberOfInstallments={numberOfInstallments}
         loanAmount={loanAmount}
         interestRate={interestRate}
+        monthlyOverpayment={monthlyOverpayment}
         className="col-span-2"
       />
     </div>
