@@ -72,66 +72,18 @@ export const columns: ColumnDef<Installment>[] = [
 
 interface MonthlyPaymentTableProps {
   className: string;
-  numberOfInstallments: number;
-  loanAmount: number;
-  interestRate: number;
-  monthlyOverpayment: number;
+  installments: Installment[];
 }
 
 const MonthlyPaymentTable = ({
   className,
-  numberOfInstallments,
-  loanAmount,
-  interestRate,
-  monthlyOverpayment,
+  installments,
 }: MonthlyPaymentTableProps) => {
-  let content = <div>Wprowadź poprawne dane</div>;
-
-  if (
-    !isNaN(numberOfInstallments) &&
-    !isNaN(loanAmount) &&
-    !isNaN(interestRate) &&
-    !isNaN(monthlyOverpayment)
-  ) {
-    const bigLoanAmount = new Big(loanAmount);
-    const bigInterestRate = new Big(interestRate).div(100);
-
-    const monthlyInterestRate = bigInterestRate.div(12);
-    const totalPayment = bigLoanAmount.times(
-      monthlyInterestRate
-        .times(monthlyInterestRate.add(1).pow(numberOfInstallments))
-        .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
-    );
-
-    let outstandingLoanBalance = bigLoanAmount;
-
-    const installments = Array.from(
-      { length: numberOfInstallments },
-      (_, i) => {
-        const principalPayment = totalPayment
-          .minus(outstandingLoanBalance.times(monthlyInterestRate))
-          .plus(monthlyOverpayment);
-
-        const interestPayment =
-          outstandingLoanBalance.times(monthlyInterestRate);
-
-        const result = {
-          installment: i + 1,
-          remainingPrincipal: outstandingLoanBalance.toNumber(),
-          installmentPayment: principalPayment.plus(interestPayment).toNumber(),
-          principalPayment: principalPayment.toNumber(),
-          interestPayment: interestPayment.toNumber(),
-        };
-
-        outstandingLoanBalance = outstandingLoanBalance.minus(principalPayment);
-
-        return result;
-      }
-    );
-    content = <DataTable columns={columns} data={installments} />;
-  }
-
-  return <div className={className}>{content}</div>;
+  return (
+    <div className={className}>
+      <DataTable columns={columns} data={installments} />;
+    </div>
+  );
 };
 
 function App() {
@@ -213,6 +165,47 @@ function App() {
   const interestRate = parseFloat(rawInterestRate);
   const monthlyOverpayment = parseFloat(rawMonthlyOverpayment);
 
+  let installments: Installment[] = [];
+
+  if (
+    !isNaN(numberOfInstallments) &&
+    !isNaN(loanAmount) &&
+    !isNaN(interestRate) &&
+    !isNaN(monthlyOverpayment)
+  ) {
+    const bigLoanAmount = new Big(loanAmount);
+    const bigInterestRate = new Big(interestRate).div(100);
+
+    const monthlyInterestRate = bigInterestRate.div(12);
+    const totalPayment = bigLoanAmount.times(
+      monthlyInterestRate
+        .times(monthlyInterestRate.add(1).pow(numberOfInstallments))
+        .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
+    );
+
+    let outstandingLoanBalance = bigLoanAmount;
+
+    installments = Array.from({ length: numberOfInstallments }, (_, i) => {
+      const principalPayment = totalPayment
+        .minus(outstandingLoanBalance.times(monthlyInterestRate))
+        .plus(monthlyOverpayment);
+
+      const interestPayment = outstandingLoanBalance.times(monthlyInterestRate);
+
+      const result = {
+        installment: i + 1,
+        remainingPrincipal: outstandingLoanBalance.toNumber(),
+        installmentPayment: principalPayment.plus(interestPayment).toNumber(),
+        principalPayment: principalPayment.toNumber(),
+        interestPayment: interestPayment.toNumber(),
+      };
+
+      outstandingLoanBalance = outstandingLoanBalance.minus(principalPayment);
+
+      return result;
+    });
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
@@ -253,13 +246,7 @@ function App() {
       <div>
         <p>Dane wyjściowe</p>
       </div>
-      <MonthlyPaymentTable
-        numberOfInstallments={numberOfInstallments}
-        loanAmount={loanAmount}
-        interestRate={interestRate}
-        monthlyOverpayment={monthlyOverpayment}
-        className="col-span-2"
-      />
+      <MonthlyPaymentTable className="col-span-2" installments={installments} />
     </div>
   );
 }
