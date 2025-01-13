@@ -60,12 +60,14 @@ interface MonthlyPaymentTableProps {
   numberOfInstallments: number;
   loanAmount: number;
   interestRate: number;
+  className: string;
 }
 
 const MonthlyPaymentTable = ({
   numberOfInstallments,
   loanAmount,
   interestRate,
+  className,
 }: MonthlyPaymentTableProps) => {
   let content = <div>Wprowadź poprawne dane</div>;
 
@@ -93,11 +95,15 @@ const MonthlyPaymentTable = ({
           .minus(remainingLoanAmount.times(monthlyInterestRate))
           .toNumber();
 
+        const interest = remainingLoanAmount
+          .times(monthlyInterestRate)
+          .toNumber();
+
         const result = {
           installment: i + 1,
           amount: totalPayment.toNumber(),
           principal: principal,
-          interest: remainingLoanAmount.times(monthlyInterestRate).toNumber(),
+          interest: interest,
         };
 
         remainingLoanAmount = remainingLoanAmount.minus(principal);
@@ -108,7 +114,7 @@ const MonthlyPaymentTable = ({
     content = <DataTable columns={columns} data={installments} />;
   }
 
-  return <div className="container mx-auto py-10">{content}</div>;
+  return <div className={className}>{content}</div>;
 };
 
 function App() {
@@ -174,8 +180,9 @@ function App() {
   const interestRate = parseFloat(rawInterestRate);
 
   return (
-    <>
+    <div className="grid grid-cols-2 gap-4">
       <div>
+        <p>Dane wejściowe</p>
         <label>
           Kwota kredytu
           <Input
@@ -201,12 +208,16 @@ function App() {
           {numberOfInstallmentsError && <div>{numberOfInstallmentsError}</div>}
         </label>
       </div>
+      <div>
+        <p>Dane wyjściowe</p>
+      </div>
       <MonthlyPaymentTable
         numberOfInstallments={numberOfInstallments}
         loanAmount={loanAmount}
         interestRate={interestRate}
+        className="col-span-2"
       />
-    </>
+    </div>
   );
 }
 
