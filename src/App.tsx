@@ -10,6 +10,7 @@ import { ColumnDef } from "@tanstack/react-table";
 export type Installment = {
   installment: number;
   amount: number;
+  principal: number;
 };
 
 export const columns: ColumnDef<Installment>[] = [
@@ -20,6 +21,30 @@ export const columns: ColumnDef<Installment>[] = [
   {
     accessorKey: "amount",
     header: "Wysokość raty",
+    cell: ({ cell }) => {
+      const originalAmount = cell.getValue<number>();
+      const formatter = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: "PLN",
+      });
+      return <div>{formatter.format(originalAmount)}</div>;
+    },
+  },
+  {
+    accessorKey: "principal",
+    header: "Kapitał",
+    cell: ({ cell }) => {
+      const originalAmount = cell.getValue<number>();
+      const formatter = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: "PLN",
+      });
+      return <div>{formatter.format(originalAmount)}</div>;
+    },
+  },
+  {
+    accessorKey: "interest",
+    header: "Odsetki",
     cell: ({ cell }) => {
       const originalAmount = cell.getValue<number>();
       const formatter = new Intl.NumberFormat("pl-PL", {
@@ -59,12 +84,26 @@ const MonthlyPaymentTable = ({
         .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
     );
 
+    let remainingLoanAmount = bigLoanAmount;
+
     const installments = Array.from(
       { length: numberOfInstallments },
-      (_, i) => ({
-        installment: i + 1,
-        amount: totalPayment.toNumber(),
-      })
+      (_, i) => {
+        const principal = totalPayment
+          .minus(remainingLoanAmount.times(monthlyInterestRate))
+          .toNumber();
+
+        const result = {
+          installment: i + 1,
+          amount: totalPayment.toNumber(),
+          principal: principal,
+          interest: remainingLoanAmount.times(monthlyInterestRate).toNumber(),
+        };
+
+        remainingLoanAmount = remainingLoanAmount.minus(principal);
+
+        return result;
+      }
     );
     content = <DataTable columns={columns} data={installments} />;
   }
