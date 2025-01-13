@@ -31,6 +31,18 @@ export const columns: ColumnDef<Installment>[] = [
     },
   },
   {
+    accessorKey: "remainingPrincipal",
+    header: "Pozostały kapitał",
+    cell: ({ cell }) => {
+      const originalAmount = cell.getValue<number>();
+      const formatter = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: "PLN",
+      });
+      return <div>{formatter.format(originalAmount)}</div>;
+    },
+  },
+  {
     accessorKey: "principal",
     header: "Kapitał",
     cell: ({ cell }) => {
@@ -102,6 +114,7 @@ const MonthlyPaymentTable = ({
         const result = {
           installment: i + 1,
           amount: totalPayment.toNumber(),
+          remainingPrincipal: remainingLoanAmount.toNumber(),
           principal: principal,
           interest: interest,
         };
