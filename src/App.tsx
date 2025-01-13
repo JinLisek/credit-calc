@@ -86,6 +86,77 @@ const MonthlyPaymentTable = ({
   );
 };
 
+const calculateInstallments = ({
+  numberOfInstallments,
+  loanAmount,
+  interestRate,
+  monthlyOverpayment,
+}: {
+  numberOfInstallments: number;
+  loanAmount: number;
+  interestRate: number;
+  monthlyOverpayment: number;
+}) => {
+  if (
+    isNaN(numberOfInstallments) ||
+    isNaN(loanAmount) ||
+    isNaN(interestRate) ||
+    isNaN(monthlyOverpayment)
+  ) {
+    return [];
+  }
+
+  const bigLoanAmount = new Big(loanAmount);
+  const bigInterestRate = new Big(interestRate).div(100);
+
+  const monthlyInterestRate = bigInterestRate.div(12);
+  const totalPayment = bigLoanAmount.times(
+    monthlyInterestRate
+      .times(monthlyInterestRate.add(1).pow(numberOfInstallments))
+      .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
+  );
+
+  let outstandingLoanBalance = bigLoanAmount;
+
+  return Array.from({ length: numberOfInstallments }, (_, i) => {
+    if (outstandingLoanBalance.lte(0)) {
+      return {
+        installment: i + 1,
+        remainingPrincipal: 0,
+        installmentPayment: 0,
+        principalPayment: 0,
+        interestPayment: 0,
+      };
+    }
+
+    const principalPayment = totalPayment
+      .minus(outstandingLoanBalance.times(monthlyInterestRate))
+      .plus(monthlyOverpayment);
+
+    const interestPayment = outstandingLoanBalance.times(monthlyInterestRate);
+
+    let result = {
+      installment: i + 1,
+      remainingPrincipal: outstandingLoanBalance.toNumber(),
+      installmentPayment: principalPayment.plus(interestPayment).toNumber(),
+      principalPayment: principalPayment.toNumber(),
+      interestPayment: interestPayment.toNumber(),
+    };
+
+    outstandingLoanBalance = outstandingLoanBalance.minus(principalPayment);
+
+    if (outstandingLoanBalance.lt(0)) {
+      result.installmentPayment = outstandingLoanBalance
+        .add(result.installmentPayment)
+        .toNumber();
+      result.principalPayment =
+        result.principalPayment + outstandingLoanBalance.toNumber();
+    }
+
+    return result;
+  });
+};
+
 function App() {
   const [rawLoanAmount, setRawLoanAmount] = useState("");
   const [rawInterestRate, setRawInterestRate] = useState("");
@@ -160,51 +231,34 @@ function App() {
     setMonthlyOverpayment(value);
   };
 
-  const numberOfInstallments = parseInt(rawNumberOfInstallments);
-  const loanAmount = parseFloat(rawLoanAmount);
-  const interestRate = parseFloat(rawInterestRate);
-  const monthlyOverpayment = parseFloat(rawMonthlyOverpayment);
+  const noOverpaymentInstallments = calculateInstallments({
+    numberOfInstallments: parseInt(rawNumberOfInstallments),
+    loanAmount: parseFloat(rawLoanAmount),
+    interestRate: parseFloat(rawInterestRate),
+    monthlyOverpayment: 0,
+  });
 
-  let installments: Installment[] = [];
+  const fullRepaymentAmount = noOverpaymentInstallments.reduce(
+    (acc, curr) => acc.add(curr.installmentPayment),
+    new Big(0)
+  );
 
-  if (
-    !isNaN(numberOfInstallments) &&
-    !isNaN(loanAmount) &&
-    !isNaN(interestRate) &&
-    !isNaN(monthlyOverpayment)
-  ) {
-    const bigLoanAmount = new Big(loanAmount);
-    const bigInterestRate = new Big(interestRate).div(100);
+  const installments = calculateInstallments({
+    numberOfInstallments: parseInt(rawNumberOfInstallments),
+    loanAmount: parseFloat(rawLoanAmount),
+    interestRate: parseFloat(rawInterestRate),
+    monthlyOverpayment: parseFloat(rawMonthlyOverpayment),
+  });
 
-    const monthlyInterestRate = bigInterestRate.div(12);
-    const totalPayment = bigLoanAmount.times(
-      monthlyInterestRate
-        .times(monthlyInterestRate.add(1).pow(numberOfInstallments))
-        .div(monthlyInterestRate.add(1).pow(numberOfInstallments).minus(1))
-    );
+  const repaymentWithOverpayment = installments.reduce(
+    (acc, curr) => acc.add(curr.installmentPayment),
+    new Big(0)
+  );
 
-    let outstandingLoanBalance = bigLoanAmount;
-
-    installments = Array.from({ length: numberOfInstallments }, (_, i) => {
-      const principalPayment = totalPayment
-        .minus(outstandingLoanBalance.times(monthlyInterestRate))
-        .plus(monthlyOverpayment);
-
-      const interestPayment = outstandingLoanBalance.times(monthlyInterestRate);
-
-      const result = {
-        installment: i + 1,
-        remainingPrincipal: outstandingLoanBalance.toNumber(),
-        installmentPayment: principalPayment.plus(interestPayment).toNumber(),
-        principalPayment: principalPayment.toNumber(),
-        interestPayment: interestPayment.toNumber(),
-      };
-
-      outstandingLoanBalance = outstandingLoanBalance.minus(principalPayment);
-
-      return result;
-    });
-  }
+  const formatter = new Intl.NumberFormat("pl-PL", {
+    style: "currency",
+    currency: "PLN",
+  });
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -245,6 +299,20 @@ function App() {
       </div>
       <div>
         <p>Dane wyjściowe</p>
+        <label>
+          Pierwotna kwota kredytu
+          <p>
+            <output>{formatter.format(fullRepaymentAmount.toNumber())}</output>
+          </p>
+        </label>
+        <label>
+          Kwota kredytu z nadpłatami
+          <p>
+            <output>
+              {formatter.format(repaymentWithOverpayment.toNumber())}
+            </output>
+          </p>
+        </label>
       </div>
       <MonthlyPaymentTable className="col-span-2" installments={installments} />
     </div>
